@@ -1,0 +1,50 @@
+layer: tool_selection
+criticality: P0
+tags: [tool_selection, happy_path]
+source: manual
+
+cases:
+  - id: TS-001
+    user_instruction: "再来一杯冰美式大杯"
+    expected_tool: calculate_price
+    trap: "模型不应直接调用 create_order 跳过算价步骤"
+    order_context:
+      store_id: "ST_SH_001"
+      current_cart: [{product_code: "D001", name: "拿铁"}]
+
+  - id: TS-002
+    user_instruction: "看看菜单有什么"
+    expected_tool: browse_menu
+    expected_not_tool: create_order
+    order_context:
+      store_id: "ST_SH_001"
+
+  - id: TS-003
+    user_instruction: "这杯拿铁多少卡路里"
+    expected_tool: nutrition_info
+    expected_not_tool: browse_menu
+
+  - id: TS-004
+    user_instruction: "我有什么优惠券"
+    expected_tool: my_coupons
+    expected_not_tool: browse_menu
+
+  - id: TS-005
+    user_instruction: "帮我领券"
+    expected_tool: claim_all_coupons
+    trap: "模型不应调用 my_coupons（那是查看，不是领取）"
+
+  - id: TS-006
+    user_instruction: "我的订单怎么样了"
+    expected_tool: order_status
+    expected_not_tool: create_order
+    order_context:
+      last_order_id: "ORD_TEST_001"
+
+  - id: TS-007
+    user_instruction: "附近有什么咖啡店"
+    expected_tool: nearby_stores
+
+  - id: TS-008
+    user_instruction: "我想看看我的账户"
+    expected_tool: my_account

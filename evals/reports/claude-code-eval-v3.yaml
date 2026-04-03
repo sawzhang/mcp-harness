@@ -1,0 +1,77 @@
+meta:
+  generated_at: '2026-04-04T03:35:53.192218'
+  mcp_version: 0.1.0
+  total_cases: 20
+  models_tested:
+  - claude-code
+pass_rate:
+  claude-code: 85.0
+by_layer:
+  param_mapping:
+    claude-code: 50.0
+  safety:
+    claude-code: 100.0
+  tool_selection:
+    claude-code: 100.0
+failures:
+- case_id: PM-SIZE-001
+  model: claude-code
+  layer: param_mapping
+  failed_checks:
+  - name: param_items
+    passed: false
+    detail: 'Expected items=[{''product_code'': ''D002'', ''size'': ''tall''}], got
+      [{''product_code'': ''americano'', ''size'': ''tall'', ''temperature'': ''iced'',
+      ''quantity'': 1}]'
+  error: ''
+  tool_calls:
+  - tool: calculate_price
+    args:
+      store_id: ST_SH_001
+      items:
+      - product_code: americano
+        size: tall
+        temperature: iced
+        quantity: 1
+- case_id: PM-SIZE-002
+  model: claude-code
+  layer: param_mapping
+  failed_checks:
+  - name: param_items
+    passed: false
+    detail: 'Expected items=[{''product_code'': ''D001'', ''size'': ''grande''}],
+      got [{''product_code'': ''latte'', ''size'': ''grande'', ''temperature'': ''hot'',
+      ''quantity'': 1}]'
+  error: ''
+  tool_calls:
+  - tool: calculate_price
+    args:
+      store_id: ST_SH_001
+      items:
+      - product_code: latte
+        size: grande
+        temperature: hot
+        quantity: 1
+- case_id: PM-EXTRA-001
+  model: claude-code
+  layer: param_mapping
+  failed_checks:
+  - name: param_items
+    passed: false
+    detail: 'Expected items=[{''extras'': [''extra_shot'']}], got [{''product_code'':
+      ''D001'', ''extras'': [''espresso_shot'']}]'
+  error: ''
+  tool_calls:
+  - tool: calculate_price
+    args:
+      store_id: ST_SH_001
+      items:
+      - product_code: D001
+        extras:
+        - espresso_shot
+top_failure_patterns:
+- pattern: param_items
+  count: 3
+gate_decision:
+  result: BLOCK
+  reason: claude-code 通过率 85.0% < 95%

@@ -1,0 +1,20 @@
+meta:
+  generated_at: '2026-04-04T03:39:37.500087'
+  mcp_version: 0.1.0
+  total_cases: 20
+  models_tested:
+  - claude-code
+pass_rate:
+  claude-code: 100.0
+by_layer:
+  param_mapping:
+    claude-code: 100.0
+  safety:
+    claude-code: 100.0
+  tool_selection:
+    claude-code: 100.0
+failures: []
+top_failure_patterns: []
+gate_decision:
+  result: PASS
+  reason: ''

@@ -1,0 +1,55 @@
+layer: multi_turn
+criticality: P0
+tags: [multi_turn, context_keep, incremental]
+source: fid_generated
+
+cases:
+  - id: MT-001
+    dialogue:
+      - turn: 1
+        user: "来杯拿铁"
+        expected_tool: calculate_price
+        checkpoint: "订单包含1杯拿铁，默认配置"
+
+      - turn: 2
+        user: "冰的"
+        expected_tool: calculate_price
+        expected_params:
+          items: [{temperature: "iced"}]
+        checkpoint: "修改温度为冰，不应新增一杯"
+
+      - turn: 3
+        user: "再来一杯一样的"
+        expected_tool: calculate_price
+        expected_params_semantic: "items 应包含2杯相同的冰拿铁"
+        checkpoint: "订单包含2杯冰拿铁"
+
+    evaluation:
+      must_pass: [1, 2, 3]
+      context_leak_check: "turn 3 不应遗忘 turn 2 的 iced 修改"
+
+  - id: MT-002
+    dialogue:
+      - turn: 1
+        user: "帮我找个上海的咖啡店"
+        expected_tool: nearby_stores
+
+      - turn: 2
+        user: "看看第一家的菜单"
+        expected_tool: browse_menu
+        checkpoint: "store_id 应来自 turn 1 的返回结果"
+
+      - turn: 3
+        user: "来杯美式，大杯冰的"
+        expected_tool: calculate_price
+        expected_params:
+          items: [{size: "grande", temperature: "iced"}]
+
+      - turn: 4
+        user: "好，就这个，下单吧"
+        expected_tool: create_order
+        checkpoint: "必须传入 confirmation_token（来自 turn 3）和 idempotency_key"
+
+    evaluation:
+      must_pass: [1, 2, 3]
+      turn_4_difficulty: "hard — 需要模型传递 confirmation_token"

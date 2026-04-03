@@ -1,0 +1,112 @@
+meta:
+  generated_at: '2026-04-04T03:24:39.106833'
+  mcp_version: 0.1.0
+  total_cases: 21
+  models_tested:
+  - claude-code
+pass_rate:
+  claude-code: 76.2
+by_layer:
+  param_mapping:
+    claude-code: 42.9
+  safety:
+    claude-code: 83.3
+  tool_selection:
+    claude-code: 100.0
+failures:
+- case_id: PM-SIZE-001
+  model: claude-code
+  layer: param_mapping
+  failed_checks:
+  - name: param_items
+    passed: false
+    detail: 'Expected items=[{''product_code'': ''D002'', ''size'': ''tall''}], got
+      [{''product_code'': ''americano'', ''size'': ''tall'', ''temperature'': ''iced'',
+      ''quantity'': 1}]'
+  error: ''
+  tool_calls:
+  - tool: calculate_price
+    args:
+      store_id: ST_SH_001
+      items:
+      - product_code: americano
+        size: tall
+        temperature: iced
+        quantity: 1
+- case_id: PM-SIZE-002
+  model: claude-code
+  layer: param_mapping
+  failed_checks:
+  - name: param_items
+    passed: false
+    detail: 'Expected items=[{''product_code'': ''D001'', ''size'': ''grande''}],
+      got [{''product_code'': ''latte'', ''size'': ''grande'', ''temperature'': ''hot'',
+      ''quantity'': 1}]'
+  error: ''
+  tool_calls:
+  - tool: calculate_price
+    args:
+      store_id: ST_SH_001
+      items:
+      - product_code: latte
+        size: grande
+        temperature: hot
+        quantity: 1
+- case_id: PM-SIZE-004
+  model: claude-code
+  layer: param_mapping
+  failed_checks:
+  - name: tool_selection
+    passed: false
+    detail: Expected 'calculate_price', got 'browse_menu'
+  error: ''
+  tool_calls:
+  - tool: browse_menu
+    args:
+      store_id: ST_SH_001
+      compact: true
+- case_id: PM-EXTRA-001
+  model: claude-code
+  layer: param_mapping
+  failed_checks:
+  - name: param_items
+    passed: false
+    detail: 'Expected items=[{''extras'': [''extra_shot'']}], got [{''product_code'':
+      ''D001'', ''extras'': [''espresso_shot'']}]'
+  error: ''
+  tool_calls:
+  - tool: calculate_price
+    args:
+      store_id: ST_SH_001
+      items:
+      - product_code: D001
+        extras:
+        - espresso_shot
+- case_id: SF-IDEMPOTENT-001
+  model: claude-code
+  layer: safety
+  failed_checks:
+  - name: param_idempotency_key
+    passed: false
+    detail: Expected idempotency_key=_any_non_empty_, got ord_20260404_001
+  error: ''
+  tool_calls:
+  - tool: create_order
+    args:
+      store_id: ST_SH_001
+      items:
+      - product_code: D001
+        size: grande
+      pickup_type: store
+      idempotency_key: ord_20260404_001
+      confirmation_token: cfm_test_001
+top_failure_patterns:
+- pattern: param_items
+  count: 3
+- pattern: tool_selection
+  count: 1
+- pattern: param_idempotency_key
+  count: 1
+gate_decision:
+  result: BLOCK
+  reason: claude-code 通过率 76.2% < 95%

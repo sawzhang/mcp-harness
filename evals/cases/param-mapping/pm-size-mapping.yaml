@@ -1,0 +1,72 @@
+layer: param_mapping
+criticality: P0
+tags: [param_mapping, size, starbucks]
+source: fid_generated
+
+cases:
+  - id: PM-SIZE-001
+    user_instruction: "来一杯中杯冰美式"
+    expected_tool: calculate_price
+    expected_params:
+      items: [{product_code: "D002", size: "tall"}]
+    trap: "中杯在星巴克体系中是 tall，不是 medium"
+    order_context:
+      store_id: "ST_SH_001"
+      menu: [{product_code: "D001", name: "拿铁"}, {product_code: "D002", name: "美式咖啡"}, {product_code: "D003", name: "焦糖玛奇朵"}]
+
+  - id: PM-SIZE-002
+    user_instruction: "大杯热拿铁"
+    expected_tool: calculate_price
+    expected_params:
+      items: [{product_code: "D001", size: "grande"}]
+    trap: "大杯是 grande，不是 large"
+    order_context:
+      store_id: "ST_SH_001"
+      menu: [{product_code: "D001", name: "拿铁"}, {product_code: "D002", name: "美式咖啡"}]
+
+  - id: PM-SIZE-003
+    user_instruction: "超大杯焦糖玛奇朵"
+    expected_tool: calculate_price
+    expected_params:
+      items: [{size: "venti"}]
+    trap: "超大杯是 venti，不是 extra-large"
+    order_context:
+      store_id: "ST_SH_001"
+      menu: [{product_code: "D003", name: "焦糖玛奇朵"}]
+
+  - id: PM-SIZE-004
+    criticality: P1
+    user_instruction: "最大的那个杯"
+    expected_tool: calculate_price
+    expected_params_semantic: "size 应为 venti（最大杯型）"
+    trap: "模型可能合理地先调 browse_menu（缺少商品上下文时）"
+    order_context:
+      store_id: "ST_SH_001"
+
+  - id: PM-MILK-001
+    user_instruction: "换燕麦奶"
+    expected_tool: calculate_price
+    expected_params:
+      items: [{milk: "oat"}]
+    order_context:
+      store_id: "ST_SH_001"
+      current_item: {product_code: "D001", name: "拿铁"}
+
+  - id: PM-TEMP-001
+    user_instruction: "冰的"
+    expected_tool: calculate_price
+    expected_params:
+      items: [{temperature: "iced"}]
+    order_context:
+      store_id: "ST_SH_001"
+      current_item: {product_code: "D001", name: "拿铁", temperature: "hot"}
+
+  - id: PM-EXTRA-001
+    user_instruction: "加一份浓缩"
+    expected_tool: calculate_price
+    expected_params:
+      items: [{extras: ["extra_shot"]}]
+    order_context:
+      store_id: "ST_SH_001"
+      current_item: {product_code: "D001", name: "拿铁"}
+      available_extras: ["extra_shot", "vanilla_syrup", "caramel_syrup", "whipped_cream"]

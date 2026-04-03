@@ -1,0 +1,305 @@
+- name: now_time_info
+  description: '返回当前日期时间和星期，供判断活动有效期、门店营业时间等。[风险等级: L0]
+
+
+    When:
+
+    - 在查询活动日历、判断优惠券有效期之前调用
+
+    - 判断门店是否在营业时间内'
+  inputSchema:
+    type: object
+    properties: {}
+- name: campaign_calendar
+  description: "查询活动日历，发现当前和即将开始的优惠活动。\n\nWhen:\n- 用户问\"有什么活动\"、\"最近有什么优惠\"\nNext:\n\
+    - 引导用户查看可领取的优惠券\n\nArgs:\n    month: 可选，查询指定月份 (格式: yyyy-MM)，默认当月"
+  inputSchema:
+    type: object
+    properties:
+      month:
+        type: string
+        description: '可选，查询指定月份 (格式: yyyy-MM)，默认当月'
+- name: available_coupons
+  description: '查询当前可领取的优惠券列表。
+
+
+    When:
+
+    - 用户问"有什么券可以领"、"券中心"
+
+    Next:
+
+    - 用户想全部领取时，引导使用 claim_all_coupons'
+  inputSchema:
+    type: object
+    properties: {}
+- name: claim_all_coupons
+  description: '一键领取所有可领取的优惠券。[风险等级: L2]
+
+
+    安全限制: 每用户每小时最多 5 次
+
+    When:
+
+    - 用户说"帮我领券"、"一键领取"、"全部领了"'
+  inputSchema:
+    type: object
+    properties: {}
+- name: my_account
+  description: '查询我的账户信息：等级、星星余额、可用权益、优惠券数量。
+
+
+    When:
+
+    - 用户问"我的等级"、"我有多少星星"、"我的账户"'
+  inputSchema:
+    type: object
+    properties: {}
+- name: my_coupons
+  description: "查询我已有的优惠券列表。\n\nWhen:\n- 用户问\"我有什么券\"、\"我的优惠券\"\n\nArgs:\n    status:\
+    \ 可选筛选 \"valid\"(可用) / \"used\"(已使用)"
+  inputSchema:
+    type: object
+    properties:
+      status:
+        type: string
+        description: 可选筛选 "valid"(可用) / "used"(已使用)
+- name: my_orders
+  description: "查询我的最近订单。\n\nWhen:\n- 用户问\"我的订单\"、\"最近点了什么\"\n\nArgs:\n    limit:\
+    \ 返回最近几笔订单，默认5"
+  inputSchema:
+    type: object
+    properties:
+      limit:
+        type: integer
+        description: 返回最近几笔订单，默认5
+- name: browse_menu
+  description: "浏览门店菜单，查看饮品和食品列表。\n\nPreconditions:\n- 必须先调用 nearby_stores 获取门店信息\n\
+    When:\n- 用户说\"看看菜单\"、\"有什么喝的\"\nNext:\n- 选中商品后 → drink_detail / calculate_price\n\
+    \nArgs:\n    store_id: 门店ID，从 nearby_stores 获取\n    compact: 紧凑模式，减少 token 消耗"
+  inputSchema:
+    type: object
+    properties:
+      store_id:
+        type: string
+        description: 门店ID，从 nearby_stores 获取
+      compact:
+        type: boolean
+        description: 紧凑模式，减少 token 消耗
+    required:
+    - store_id
+- name: drink_detail
+  description: "查看饮品详情和自定义选项（杯型/奶类/温度/甜度/加料）。当用户想了解某个饮品有哪些定制选项时使用。\n\nArgs:\n    product_code:\
+    \ 商品编号（如 D003），从 browse_menu 获取"
+  inputSchema:
+    type: object
+    properties:
+      product_code:
+        type: string
+        description: 商品编号（如 D003），从 browse_menu 获取
+    required:
+    - product_code
+- name: nutrition_info
+  description: "查询饮品营养成分（热量、蛋白质、脂肪等）。当用户问\"多少卡\"、\"热量高吗\"时使用。\n\nArgs:\n    product_code:\
+    \ 商品编号（如 D001），从 browse_menu 获取\n    compact: 紧凑模式，单行输出"
+  inputSchema:
+    type: object
+    properties:
+      product_code:
+        type: string
+        description: 商品编号（如 D001），从 browse_menu 获取
+      compact:
+        type: boolean
+        description: 紧凑模式，单行输出
+    required:
+    - product_code
+- name: nearby_stores
+  description: "搜索附近门店，按城市或关键词筛选。\n\nWhen:\n- 用户说\"附近有什么店\"、\"找一家店\"\n\nArgs:\n  \
+    \  city: 可选，城市名\n    keyword: 可选，关键词搜索"
+  inputSchema:
+    type: object
+    properties:
+      city:
+        type: string
+        description: 可选，城市名
+      keyword:
+        type: string
+        description: 可选，关键词搜索
+- name: store_detail
+  description: "查看门店详情：地址、营业时间、电话（脱敏显示）、服务。当用户问\"这家店在哪\"、\"几点关门\"时使用。\n\nArgs:\n \
+    \   store_id: 门店ID，从 nearby_stores 获取"
+  inputSchema:
+    type: object
+    properties:
+      store_id:
+        type: string
+        description: 门店ID，从 nearby_stores 获取
+    required:
+    - store_id
+- name: stars_mall_products
+  description: "浏览积分商城，查看可兑换商品。\n\nWhen:\n- 用户问\"积分能换什么\"、\"星星商城\"\n\nArgs:\n    category:\
+    \ 可选分类筛选"
+  inputSchema:
+    type: object
+    properties:
+      category:
+        type: string
+        description: 可选分类筛选
+- name: stars_product_detail
+  description: "查看积分商品详情。当用户想了解某个积分商品的兑换条件时使用。\n\nArgs:\n    product_code: 积分商品编号，从\
+    \ stars_mall_products 获取"
+  inputSchema:
+    type: object
+    properties:
+      product_code:
+        type: string
+        description: 积分商品编号，从 stars_mall_products 获取
+    required:
+    - product_code
+- name: stars_redeem
+  description: "用星星兑换积分商城商品。[风险等级: L3]\n\n安全限制: 每用户每天最多 10 次\nPreconditions:\n- 先查看\
+    \ stars_product_detail 确认商品\n- 用户确认后才可调用\n\nArgs:\n    product_code: 积分商品编号\n\
+    \    idempotency_key: 幂等键，防重复兑换"
+  inputSchema:
+    type: object
+    properties:
+      product_code:
+        type: string
+        description: 积分商品编号
+      idempotency_key:
+        type: string
+        description: 幂等键，防重复兑换
+    required:
+    - product_code
+    - idempotency_key
+- name: delivery_addresses
+  description: '查询我的配送地址列表。
+
+
+    When:
+
+    - 用户选择外送时，先查看/选择配送地址'
+  inputSchema:
+    type: object
+    properties: {}
+- name: create_address
+  description: "创建新的配送地址。[风险等级: L2]\n\nArgs:\n    city: 城市\n    address: 详细地址\n  \
+    \  address_detail: 门牌号\n    contact_name: 联系人\n    phone: 手机号（11位）"
+  inputSchema:
+    type: object
+    properties:
+      city:
+        type: string
+        description: 城市
+      address:
+        type: string
+        description: 详细地址
+      address_detail:
+        type: string
+        description: 门牌号
+      contact_name:
+        type: string
+        description: 联系人
+      phone:
+        type: string
+        description: 手机号（11位）
+    required:
+    - city
+    - address
+    - address_detail
+    - contact_name
+    - phone
+- name: store_coupons
+  description: "查询在指定门店可使用的优惠券。\n\nPreconditions:\n- 必须先调用 nearby_stores 获取门店信息\n\n\
+    Args:\n    store_id: 门店ID"
+  inputSchema:
+    type: object
+    properties:
+      store_id:
+        type: string
+        description: 门店ID
+    required:
+    - store_id
+- name: calculate_price
+  description: "计算订单价格（含优惠），返回确认令牌用于下单。当用户选好商品准备下单时使用。\n\nPreconditions:\n- 必须先调用\
+    \ nearby_stores 获取门店 store_id\n- 商品 product_code 从 browse_menu 获取（格式如 D001, D002,\
+    \ F001，不要用英文名）\nNext:\n- 用户确认后将 confirmation_token 传入 create_order\n\nArgs:\n\
+    \    store_id: 门店ID，从 nearby_stores 获取\n    items: 商品列表，每项包含:\n        - product_code:\
+    \ 商品编号（如 D001），必须从 browse_menu 返回的编号中获取\n        - quantity: 数量（默认1）\n       \
+    \ - size: 杯型 tall(中杯) / grande(大杯) / venti(超大杯)，注意星巴克中杯=tall\n        - milk:\
+    \ 奶型 whole / skim / oat / almond / soy / coconut\n        - temperature: 温度 hot\
+    \ / iced / blended\n        - extras: 加料列表，可选值: extra_shot / vanilla_syrup / caramel_syrup\
+    \ / hazelnut_syrup / whipped_cream / chocolate_sauce\n    coupon_code: 优惠券编号（可选），从\
+    \ my_coupons 或 store_coupons 获取"
+  inputSchema:
+    type: object
+    properties:
+      store_id:
+        type: string
+        description: 门店ID，从 nearby_stores 获取
+      items:
+        type: array
+        items:
+          type: string
+        description: '商品列表，每项包含: - product_code: 商品编号（如 D001），必须从 browse_menu 返回的编号中获取
+          - quantity: 数量（默认1） - size: 杯型 tall(中杯) / grande(大杯) / venti(超大杯)，注意星巴克中杯=tall
+          - milk: 奶型 whole / skim / oat / almond / soy / coconut - temperature: 温度
+          hot / iced / blended - extras: 加料列表，可选值: extra_shot / vanilla_syrup / caramel_syrup
+          / hazelnut_syrup / whipped_cream / chocolate_sauce'
+      coupon_code:
+        type: string
+        description: 优惠券编号（可选），从 my_coupons 或 store_coupons 获取
+    required:
+    - store_id
+    - items
+- name: create_order
+  description: "创建订单。[风险等级: L3] 当用户确认价格后说\"下单\"、\"确认\"时使用。\n\nPreconditions:\n- 必须先调用\
+    \ calculate_price 获取 confirmation_token，不可跳过\n- 外送订单必须提供 address_id（从 delivery_addresses\
+    \ 获取）\n- items 格式与 calculate_price 相同\n\nArgs:\n    store_id: 门店ID，从 nearby_stores\
+    \ 获取\n    items: 商品列表，与 calculate_price 中传入的一致\n    pickup_type: \"自提\" / \"外送\"\
+    \ / \"堂食\"\n    idempotency_key: 幂等键（UUID 格式），防重复下单\n    confirmation_token: 确认令牌，必须从\
+    \ calculate_price 返回值中获取\n    coupon_code: 优惠券编号（可选）\n    address_id: 配送地址ID，外送必填，从\
+    \ delivery_addresses 获取"
+  inputSchema:
+    type: object
+    properties:
+      store_id:
+        type: string
+        description: 门店ID，从 nearby_stores 获取
+      items:
+        type: array
+        items:
+          type: string
+        description: 商品列表，与 calculate_price 中传入的一致
+      pickup_type:
+        type: string
+        description: '"自提" / "外送" / "堂食"'
+      idempotency_key:
+        type: string
+        description: 幂等键（UUID 格式），防重复下单
+      confirmation_token:
+        type: string
+        description: 确认令牌，必须从 calculate_price 返回值中获取
+      coupon_code:
+        type: string
+        description: 优惠券编号（可选）
+      address_id:
+        type: string
+        description: 配送地址ID，外送必填，从 delivery_addresses 获取
+    required:
+    - store_id
+    - items
+    - pickup_type
+    - idempotency_key
+    - confirmation_token
+- name: order_status
+  description: "查询订单状态详情。当用户问\"我的订单怎么样了\"、\"做好了吗\"时使用。\n\nArgs:\n    order_id: 订单号，从\
+    \ create_order 或 my_orders 获取"
+  inputSchema:
+    type: object
+    properties:
+      order_id:
+        type: string
+        description: 订单号，从 create_order 或 my_orders 获取
+    required:
+    - order_id

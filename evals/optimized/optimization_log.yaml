@@ -1,0 +1,161 @@
+started_at: '2026-04-04T03:17:51.738883'
+total_rounds: 2
+best_pass_rate: 0.625
+best_round: 1
+trajectory:
+- round: 0
+  pass_rate: 0.5833333333333334
+  kept: true
+  changes: 0
+  duration_ms: 0
+- round: 1
+  pass_rate: 0.625
+  kept: true
+  changes: 1
+  duration_ms: 0.2122910227626562
+best_tools:
+- name: nearby_stores
+  description: 查找附近门店。当用户想点咖啡但还没选门店时使用。
+  inputSchema:
+    type: object
+    properties:
+      city:
+        type: string
+        description: 城市名
+      keyword:
+        type: string
+        description: 搜索关键词
+- name: browse_menu
+  description: 浏览门店菜单。当用户想看有什么可以点时使用。
+  inputSchema:
+    type: object
+    required:
+    - store_id
+    properties:
+      store_id:
+        type: string
+        description: 门店ID，从 nearby_stores 返回结果中获取
+      compact:
+        type: boolean
+        description: 精简模式
+        default: false
+- name: drink_detail
+  description: 查看饮品详细信息和定制选项。
+  inputSchema:
+    type: object
+    required:
+    - product_code
+    properties:
+      product_code:
+        type: string
+        description: 商品编码
+- name: calculate_price
+  description: 杯型：tall(中杯12oz) | grande(大杯16oz) | venti(超大杯20oz)。注意星巴克中杯=tall
+  inputSchema:
+    type: object
+    required:
+    - store_id
+    - items
+    properties:
+      store_id:
+        type: string
+        description: 门店ID
+      items:
+        type: array
+        items:
+          type: object
+          required:
+          - product_code
+          - quantity
+          properties:
+            product_code:
+              type: string
+            quantity:
+              type: integer
+            size:
+              type: string
+              description: 杯型
+            milk:
+              type: string
+              description: 奶型
+            temperature:
+              type: string
+              description: 温度
+            extras:
+              type: array
+              items:
+                type: string
+      coupon_code:
+        type: string
+- name: create_order
+  description: 创建订单。必须先调用 calculate_price。
+  inputSchema:
+    type: object
+    required:
+    - store_id
+    - items
+    - pickup_type
+    - idempotency_key
+    - confirmation_token
+    properties:
+      store_id:
+        type: string
+      items:
+        type: array
+        items:
+          type: object
+      pickup_type:
+        type: string
+        description: 取餐方式
+      idempotency_key:
+        type: string
+        description: 幂等键
+      confirmation_token:
+        type: string
+        description: 确认令牌
+      coupon_code:
+        type: string
+      address_id:
+        type: string
+- name: order_status
+  description: 查询订单状态。
+  inputSchema:
+    type: object
+    required:
+    - order_id
+    properties:
+      order_id:
+        type: string
+        description: 订单ID
+- name: my_account
+  description: 查看用户账户信息。
+  inputSchema:
+    type: object
+    properties: {}
+- name: my_coupons
+  description: 查看用户的优惠券列表。
+  inputSchema:
+    type: object
+    properties:
+      status:
+        type: string
+        description: 筛选状态
+        default: valid
+- name: nutrition_info
+  description: 查看饮品营养信息。
+  inputSchema:
+    type: object
+    required:
+    - product_code
+    properties:
+      product_code:
+        type: string
+        description: 商品编码
+      compact:
+        type: boolean
+        default: false
+- name: claim_all_coupons
+  description: 一键领取所有可用优惠券。
+  inputSchema:
+    type: object
+    properties: {}
