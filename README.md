@@ -122,7 +122,7 @@ mcp-harness/
 
 ## 被评估的 MCP Server
 
-目标 Server 位于 `../coffee-mcp`，包含 21 个消费者端 Tool（语音点单场景），安全分级 L0-L3。
+目标 Server 位于 [coffee-mcp](https://github.com/sawzhang/coffee-mcp)，包含 21 个消费者端 Tool（语音点单场景），安全分级 L0-L3。
 
 ## License
 
