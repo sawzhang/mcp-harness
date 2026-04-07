@@ -1,0 +1,62 @@
+# 二级分类: pe-combo — 多维参数组合提取
+# 测试模型从一句话中同时提取多个客制化维度的能力
+# 来源: AIChatOrder 的 slots_v2.yaml 定义了 11 个客制化维度
+layer: param_mapping
+criticality: P0
+tags: [param_mapping, combo, multi_dimension, customization]
+source: fid_generated
+
+cases:
+  - id: PE-COMBO-001
+    user_instruction: "大杯冰燕麦拿铁加一份浓缩"
+    expected_tool: calculate_price
+    expected_params:
+      items:
+        - product_code: "D003"
+          size: "grande"
+          milk: "oat"
+          extras: ["extra_shot"]
+    trap: "四维同时提取: size=grande + temp 决定 iced 产品 + milk=oat + extras=[extra_shot]"
+    order_context:
+      store_id: "ST_SH_001"
+
+  - id: PE-COMBO-002
+    user_instruction: "超大杯热脱脂拿铁加榛果糖浆和奶油顶"
+    expected_tool: calculate_price
+    expected_params:
+      items:
+        - product_code: "D003"
+          size: "venti"
+          milk: "skim"
+          extras: ["hazelnut_syrup", "whipped_cream"]
+    trap: "五维提取: size + temp + milk + 两个 extras；extras 是列表不是单值"
+    order_context:
+      store_id: "ST_SH_001"
+
+  - id: PE-COMBO-003
+    user_instruction: "两杯中杯冰美式和一杯大杯热拿铁换燕麦奶"
+    expected_tool: calculate_price
+    expected_params:
+      items:
+        - product_code: "D001"
+          size: "tall"
+          quantity: 2
+        - product_code: "D003"
+          size: "grande"
+          milk: "oat"
+          quantity: 1
+    trap: "多品多维: 两个不同饮品各自的 size/quantity/milk 不能混淆"
+    order_context:
+      store_id: "ST_SH_001"
+
+  - id: PE-COMBO-004
+    user_instruction: "一杯中杯热香草拿铁少糖加焦糖糖浆"
+    expected_tool: calculate_price
+    expected_params:
+      items:
+        - product_code: "D004"
+          size: "tall"
+          extras: ["caramel_syrup"]
+    trap: "香草拿铁自带香草风味，用户额外加焦糖糖浆不应被忽略；少糖是甜度不是 extras"
+    order_context:
+      store_id: "ST_SH_001"

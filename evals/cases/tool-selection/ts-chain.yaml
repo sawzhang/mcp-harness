@@ -1,0 +1,29 @@
+# 二级分类: ts-chain — 链式前置依赖
+# 测试模型是否理解工具之间的调用依赖关系
+layer: tool_selection
+criticality: P0
+tags: [tool_selection, chain, prerequisite]
+source: manual
+
+cases:
+  - id: TS-CHAIN-001
+    user_instruction: "今天周几，有什么活动"
+    expected_tool: now_time_info
+    trap: "应先调 now_time_info 获取当前日期，再调 campaign_calendar；不能跳过时间查询"
+    order_context: {}
+
+  - id: TS-CHAIN-002
+    user_instruction: "帮我看看这款饮品的详细客制化选项"
+    expected_tool: drink_detail
+    expected_not_tool: browse_menu
+    trap: "已知 product_code 时应调 drink_detail 看客制化选项，不是 browse_menu 看全菜单"
+    order_context:
+      product_code: "D003"
+
+  - id: TS-CHAIN-003
+    user_instruction: "这个积分商品的详情"
+    expected_tool: stars_product_detail
+    expected_not_tool: stars_mall_products
+    trap: "已有 product_code 时查详情用 stars_product_detail，不是 stars_mall_products"
+    order_context:
+      product_code: "SM_001"

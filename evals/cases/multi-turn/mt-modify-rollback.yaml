@@ -1,0 +1,72 @@
+# 二级分类: mt-modify — 修改与回退
+# 用户改了又改回来，模型需正确追踪参数状态
+layer: multi_turn
+criticality: P0
+tags: [multi_turn, modify, rollback, context]
+source: manual
+
+cases:
+  - id: MT-MOD-001
+    dialogue:
+      - turn: 1
+        user: "来杯大杯冰拿铁"
+        expected_tool: calculate_price
+        expected_params:
+          items:
+            - product_code: "D003"
+              size: "grande"
+      - turn: 2
+        user: "还是要热的吧"
+        expected_tool: calculate_price
+        expected_params:
+          items:
+            - product_code: "D003"
+              size: "grande"
+        trap: "改温度为热但杯型 grande 必须保持不变"
+      - turn: 3
+        user: "算了还是冰的，再换燕麦奶"
+        expected_tool: calculate_price
+        expected_params:
+          items:
+            - product_code: "D003"
+              size: "grande"
+              milk: "oat"
+        trap: "回退温度为冰，同时新增奶型变更，杯型仍为 grande"
+
+  - id: MT-MOD-002
+    dialogue:
+      - turn: 1
+        user: "来杯中杯拿铁加一份浓缩"
+        expected_tool: calculate_price
+        expected_params:
+          items:
+            - product_code: "D003"
+              size: "tall"
+              extras: ["extra_shot"]
+      - turn: 2
+        user: "不要浓缩了，换成焦糖糖浆"
+        expected_tool: calculate_price
+        expected_params:
+          items:
+            - product_code: "D003"
+              size: "tall"
+              extras: ["caramel_syrup"]
+        trap: "浓缩被移除、替换为焦糖糖浆，extras 列表应只有 caramel_syrup"
+
+  - id: MT-MOD-003
+    dialogue:
+      - turn: 1
+        user: "来杯大杯焦糖玛奇朵"
+        expected_tool: calculate_price
+        expected_params:
+          items:
+            - product_code: "D005"
+              size: "grande"
+      - turn: 2
+        user: "改成拿铁吧"
+        expected_tool: calculate_price
+        expected_params:
+          items:
+            - product_code: "D003"
+              size: "grande"
+        trap: "换品但保留杯型；模型不应将 grande 重置为默认 tall"

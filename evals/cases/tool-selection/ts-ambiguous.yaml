@@ -1,0 +1,37 @@
+# 二级分类: ts-ambiguous — 歧义意图消歧
+# 测试模型在相似工具间能否正确区分
+layer: tool_selection
+criticality: P0
+tags: [tool_selection, ambiguous, disambiguation]
+source: manual
+
+cases:
+  - id: TS-AMB-001
+    user_instruction: "有什么优惠活动"
+    expected_tool: campaign_calendar
+    expected_not_tool: available_coupons
+    trap: "优惠活动是 campaign_calendar（活动日历），不是 available_coupons（可领优惠券）"
+    order_context:
+      store_id: "ST_SH_001"
+
+  - id: TS-AMB-002
+    user_instruction: "这个店有什么券可以用"
+    expected_tool: store_coupons
+    expected_not_tool: my_coupons
+    trap: "特定门店可用券是 store_coupons，不是查看我的全部券 my_coupons"
+    order_context:
+      store_id: "ST_SH_001"
+
+  - id: TS-AMB-003
+    user_instruction: "星巴克积分商城有什么"
+    expected_tool: stars_mall_products
+    expected_not_tool: browse_menu
+    trap: "积分商城是 stars_mall_products，不是普通菜单 browse_menu"
+    order_context: {}
+
+  - id: TS-AMB-004
+    user_instruction: "我的收货地址有哪些"
+    expected_tool: delivery_addresses
+    expected_not_tool: nearby_stores
+    trap: "查收货地址是 delivery_addresses，不是查门店 nearby_stores"
+    order_context: {}

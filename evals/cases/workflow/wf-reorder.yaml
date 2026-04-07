@@ -1,0 +1,14 @@
+# 二级分类: wf-prerequisite — 复购/再来一单流程
+layer: tool_selection
+criticality: P1
+tags: [workflow, reorder, history]
+source: manual
+
+cases:
+  - id: WF-REORD-001
+    user_instruction: "上次点的那个再来一单"
+    expected_tool: my_orders
+    expected_not_tool: calculate_price
+    trap: "复购需先查历史订单 my_orders 获取上次的 items，不能凭空构造参数"
+    order_context:
+      store_id: "ST_SH_001"

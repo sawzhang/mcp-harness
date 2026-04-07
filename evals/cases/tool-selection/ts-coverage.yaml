@@ -1,0 +1,70 @@
+# 二级分类: ts-basic 扩展 — 补充未覆盖的工具路由
+# 现有 ts-basic 只覆盖 8 个工具，coffee-mcp 共 21 个工具
+# 补充 campaign_calendar, store_detail, available_coupons, stars_mall_products,
+# delivery_addresses, create_address, stars_redeem, my_orders, drink_detail 等
+layer: tool_selection
+criticality: P0
+tags: [tool_selection, coverage, complete]
+source: manual
+
+cases:
+  - id: TS-COV-001
+    user_instruction: "这个月有什么优惠券可以领"
+    expected_tool: available_coupons
+    expected_not_tool: campaign_calendar
+    trap: "可领券是 available_coupons，不是活动日历 campaign_calendar"
+    order_context: {}
+
+  - id: TS-COV-002
+    user_instruction: "这家店的地址和营业时间"
+    expected_tool: store_detail
+    expected_not_tool: nearby_stores
+    trap: "已有 store_id，查详情用 store_detail 不是 nearby_stores"
+    order_context:
+      store_id: "ST_SH_001"
+
+  - id: TS-COV-003
+    user_instruction: "我最近点了什么"
+    expected_tool: my_orders
+    expected_not_tool: order_status
+    trap: "查历史订单列表是 my_orders，查单个订单状态是 order_status"
+    order_context: {}
+
+  - id: TS-COV-004
+    user_instruction: "这杯拿铁能怎么客制化"
+    expected_tool: drink_detail
+    expected_not_tool: nutrition_info
+    trap: "问客制化选项用 drink_detail，不是 nutrition_info"
+    order_context:
+      product_code: "D003"
+
+  - id: TS-COV-005
+    user_instruction: "帮我加个新地址"
+    expected_tool: create_address
+    expected_not_tool: delivery_addresses
+    trap: "新增地址是 create_address（L2写），不是 delivery_addresses（L1读）"
+    order_context: {}
+
+  - id: TS-COV-006
+    user_instruction: "用积分换个饮品券"
+    expected_tool: stars_mall_products
+    expected_not_tool: stars_redeem
+    trap: "应先浏览积分商城 stars_mall_products 选择商品，不能直接 stars_redeem"
+    order_context: {}
+
+  - id: TS-COV-007
+    user_instruction: "紧凑模式看一下菜单"
+    expected_tool: browse_menu
+    expected_params:
+      compact: true
+    trap: "紧凑模式对应 compact=true 参数"
+    order_context:
+      store_id: "ST_SH_001"
+
+  - id: TS-COV-008
+    user_instruction: "我的订单 ORD_202604_001 到哪了"
+    expected_tool: order_status
+    expected_params:
+      order_id: "ORD_202604_001"
+    trap: "有明确 order_id 时应直接调 order_status，不是 my_orders"
+    order_context: {}

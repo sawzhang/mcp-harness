@@ -1,0 +1,39 @@
+# 二级分类: cx-default — 默认值推断
+# 用户只说品名不说规格时，模型应使用合理默认值
+# 来源: AIChatOrder slots_v2.yaml 中每个维度的 default 字段
+layer: param_mapping
+criticality: P0
+tags: [customization, default, inference]
+source: fid_generated
+
+cases:
+  - id: CX-DEF-001
+    user_instruction: "来杯拿铁"
+    expected_tool: calculate_price
+    expected_params:
+      items:
+        - product_code: "D003"
+          size: "tall"
+          quantity: 1
+    trap: "只说品名时默认中杯(tall)、数量1。模型不应因缺少 size 而拒绝调用或反问"
+    order_context:
+      store_id: "ST_SH_001"
+
+  - id: CX-DEF-002
+    user_instruction: "一杯美式"
+    expected_tool: calculate_price
+    expected_params:
+      items:
+        - product_code: "D001"
+          size: "tall"
+          quantity: 1
+    trap: "美式默认中杯、热饮、无奶。模型不应主动填入 milk 字段"
+    order_context:
+      store_id: "ST_SH_001"
+
+  - id: CX-DEF-003
+    user_instruction: "和上次一样"
+    expected_tool: my_orders
+    trap: "复购场景应先查历史订单 my_orders，不能凭空猜测上次点了什么"
+    order_context:
+      store_id: "ST_SH_001"

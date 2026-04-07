@@ -1,0 +1,41 @@
+# 二级分类: mt-modify — 取消与重来
+layer: multi_turn
+criticality: P0
+tags: [multi_turn, cancel, restart]
+source: manual
+
+cases:
+  - id: MT-CANCEL-001
+    dialogue:
+      - turn: 1
+        user: "来杯大杯冰美式"
+        expected_tool: calculate_price
+        expected_params:
+          items:
+            - product_code: "D001"
+              size: "grande"
+      - turn: 2
+        user: "算了不要了，换杯拿铁"
+        expected_tool: calculate_price
+        expected_params:
+          items:
+            - product_code: "D003"
+        trap: "取消美式换拿铁，不应保留美式。模型需清空前序选择"
+
+  - id: MT-CANCEL-002
+    dialogue:
+      - turn: 1
+        user: "两杯拿铁一杯美式"
+        expected_tool: calculate_price
+      - turn: 2
+        user: "美式不要了"
+        expected_tool: calculate_price
+        expected_params:
+          items:
+            - product_code: "D003"
+              quantity: 2
+        trap: "只移除美式，保留两杯拿铁"
+      - turn: 3
+        user: "全部不要了，重新来"
+        expected_tool: browse_menu
+        trap: "全部取消后应回到浏览阶段，不再调 calculate_price"

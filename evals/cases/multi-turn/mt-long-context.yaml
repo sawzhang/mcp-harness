@@ -1,0 +1,41 @@
+# 二级分类: mt-context — 长对话上下文衰减测试
+# 5+ 轮后早期信息是否还能保持
+layer: multi_turn
+criticality: P1
+tags: [multi_turn, long_context, decay]
+source: manual
+
+cases:
+  - id: MT-LONG-001
+    dialogue:
+      - turn: 1
+        user: "上海有什么咖啡店"
+        expected_tool: nearby_stores
+      - turn: 2
+        user: "第一家的菜单"
+        expected_tool: browse_menu
+      - turn: 3
+        user: "来杯大杯冰拿铁"
+        expected_tool: calculate_price
+        expected_params:
+          items:
+            - product_code: "D003"
+              size: "grande"
+      - turn: 4
+        user: "换燕麦奶"
+        expected_tool: calculate_price
+        expected_params:
+          items:
+            - product_code: "D003"
+              size: "grande"
+              milk: "oat"
+      - turn: 5
+        user: "加份浓缩"
+        expected_tool: calculate_price
+        expected_params:
+          items:
+            - product_code: "D003"
+              size: "grande"
+              milk: "oat"
+              extras: ["extra_shot"]
+        trap: "第5轮仍需保持 turn 1 的 store_id、turn 3 的 size、turn 4 的 milk"

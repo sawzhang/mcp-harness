@@ -1,0 +1,38 @@
+# 二级分类: pe-modifier — 单维修饰参数提取（甜度/奶型扩展）
+# 补充现有 pm-size-mapping 中未覆盖的甜度和奶型
+layer: param_mapping
+criticality: P0
+tags: [param_mapping, sweetness, milk, modifier]
+source: fid_generated
+
+cases:
+  - id: PE-SWEET-001
+    user_instruction: "来杯拿铁半糖"
+    expected_tool: calculate_price
+    expected_params:
+      items:
+        - product_code: "D003"
+    trap: "半糖/五分糖/50%糖映射到 half sweetness，不要映射到 extras"
+    order_context:
+      store_id: "ST_SH_001"
+
+  - id: PE-SWEET-002
+    user_instruction: "拿铁不要糖"
+    expected_tool: calculate_price
+    expected_params:
+      items:
+        - product_code: "D003"
+    trap: "不要糖/无糖是甜度选项 none，不是去掉某个 extra"
+    order_context:
+      store_id: "ST_SH_001"
+
+  - id: PE-MILK-002
+    user_instruction: "拿铁换豆奶"
+    expected_tool: calculate_price
+    expected_params:
+      items:
+        - product_code: "D003"
+          milk: "soy"
+    trap: "豆奶映射到 soy，不是 almond 也不是 oat"
+    order_context:
+      store_id: "ST_SH_001"

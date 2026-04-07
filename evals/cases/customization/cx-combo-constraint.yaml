@@ -1,0 +1,39 @@
+# 二级分类: cx-constraint 扩展 — 多维组合约束
+# 来源: AIChatOrder slots_v2.yaml 中的 sku_rules 和 forbidden_combinations
+layer: param_mapping
+criticality: P1
+tags: [customization, constraint, combo, sku_rule]
+source: fid_generated
+
+cases:
+  - id: CX-COMB-001
+    user_instruction: "大杯冰拿铁去奶泡"
+    expected_tool: calculate_price
+    trap: "冰饮+中杯 (Cold_Tall) 组合下奶泡选项不可用。模型应告知冰饮无奶泡选项"
+    expected_behavior: "模型应告知冰饮通常无奶泡，无需特别去除"
+    order_context:
+      store_id: "ST_SH_001"
+
+  - id: CX-COMB-002
+    user_instruction: "馥芮白冰的大杯"
+    expected_tool: calculate_price
+    trap: "馥芮白约束: 温度只能热、杯型只有 tall/grande 无 venti。两个约束同时触发"
+    expected_behavior: "模型应告知馥芮白建议热饮且不超过大杯"
+    order_context:
+      store_id: "ST_SH_001"
+
+  - id: CX-COMB-003
+    user_instruction: "浓缩咖啡加燕麦奶再加一份浓缩"
+    expected_tool: calculate_price
+    trap: "浓缩咖啡 (D002) 无奶选项。加浓缩 shot 可以但换奶不行"
+    expected_behavior: "模型应告知浓缩咖啡不支持换奶"
+    order_context:
+      store_id: "ST_SH_001"
+
+  - id: CX-COMB-004
+    user_instruction: "中杯热拿铁少糖代糖"
+    expected_tool: calculate_price
+    trap: "少糖和代糖是互斥的甜度选项（ChangeSugar 只能选一类），模型应澄清用户想要哪种"
+    expected_behavior: "模型应询问是要少甜还是换代糖"
+    order_context:
+      store_id: "ST_SH_001"

@@ -1,0 +1,29 @@
+# 一级分类: workflow — 流程编排
+# 二级分类: wf-prerequisite — 前置依赖感知
+# 模型应理解工具间的依赖关系，不跳步
+layer: tool_selection
+criticality: P0
+tags: [workflow, prerequisite, chain]
+source: manual
+
+cases:
+  - id: WF-PRE-001
+    user_instruction: "帮我看看这个店有什么菜"
+    expected_tool: nearby_stores
+    trap: "用户没指定 store_id，应先调 nearby_stores 获取门店，再 browse_menu。不应编造 store_id"
+    order_context: {}
+
+  - id: WF-PRE-002
+    user_instruction: "帮我用积分换这个"
+    expected_tool: stars_product_detail
+    expected_not_tool: stars_redeem
+    trap: "兑换前应先查详情确认积分够不够，不应直接调 stars_redeem"
+    order_context:
+      product_code: "SM_001"
+
+  - id: WF-PRE-003
+    user_instruction: "现在几点了，店还开着吗"
+    expected_tool: now_time_info
+    trap: "应先调 now_time_info 获取当前时间，再调 store_detail 查营业时间"
+    order_context:
+      store_id: "ST_SH_001"

@@ -1,0 +1,42 @@
+# 二级分类: pe-quantity — 数量提取
+# 中文数量词的正确解析: 一杯/两杯/三杯/半打
+layer: param_mapping
+criticality: P0
+tags: [param_mapping, quantity, chinese_number]
+source: fid_generated
+
+cases:
+  - id: PE-QTY-001
+    user_instruction: "来三杯中杯冰美式"
+    expected_tool: calculate_price
+    expected_params:
+      items:
+        - product_code: "D001"
+          size: "tall"
+          quantity: 3
+    trap: "三杯 = quantity:3，不是三个 items"
+    order_context:
+      store_id: "ST_SH_001"
+
+  - id: PE-QTY-002
+    user_instruction: "两杯拿铁一杯美式"
+    expected_tool: calculate_price
+    expected_params:
+      items:
+        - product_code: "D003"
+          quantity: 2
+        - product_code: "D001"
+          quantity: 1
+    trap: "两个品各自有不同数量，不应合并为一个 item"
+    order_context:
+      store_id: "ST_SH_001"
+
+  - id: PE-QTY-003
+    user_instruction: "再来一杯一样的"
+    expected_tool: calculate_price
+    trap: "复购上一杯，quantity 应+1 或新增相同 item。需依赖上文已有的饮品信息"
+    order_context:
+      store_id: "ST_SH_001"
+      previous_items:
+        - product_code: "D003"
+          size: "tall"

@@ -1,0 +1,32 @@
+# 二级分类: cx-availability — 规格可用性
+# 产品的 available_sizes / available_milks 限制了可选范围
+# 模型需基于 drink_detail 返回值判断可用选项
+layer: param_mapping
+criticality: P1
+tags: [customization, availability, sku]
+source: fid_generated
+
+cases:
+  - id: CX-AVAIL-001
+    user_instruction: "樱花白巧拿铁中杯的"
+    expected_tool: calculate_price
+    trap: "樱花白巧拿铁 (D006) 只有 grande 和 venti 两种杯型，没有 tall。模型应提示并推荐 grande"
+    expected_behavior: "模型应告知该饮品最小杯型是大杯 (grande)"
+    order_context:
+      store_id: "ST_SH_001"
+
+  - id: CX-AVAIL-002
+    user_instruction: "焦糖玛奇朵换豆奶"
+    expected_tool: calculate_price
+    trap: "焦糖玛奇朵 (D005) available_milks 只有 whole/skim/oat，没有 soy。模型应告知可选范围"
+    expected_behavior: "模型应告知该饮品不支持豆奶，推荐燕麦奶等替代"
+    order_context:
+      store_id: "ST_SH_001"
+
+  - id: CX-AVAIL-003
+    user_instruction: "生椰冷萃中杯"
+    expected_tool: calculate_price
+    trap: "生椰冷萃 (D007) sizes 只有 grande/venti，无 tall。且 milk 只有 coconut 不可更换"
+    expected_behavior: "模型应告知生椰冷萃最小杯型是大杯"
+    order_context:
+      store_id: "ST_SH_001"

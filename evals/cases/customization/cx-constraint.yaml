@@ -1,0 +1,49 @@
+# 一级分类: customization — 商品客制化
+# 二级分类: cx-constraint — 产品客制化约束规则
+# 来源: AIChatOrder slots_v2.yaml 中的 product_constraints 和 sku_rules
+# 某些产品只支持特定的温度/奶型/杯型组合，模型需理解这些约束
+layer: param_mapping
+criticality: P0
+tags: [customization, constraint, product_rule]
+source: fid_generated
+
+cases:
+  - id: CX-CONST-001
+    user_instruction: "来杯热星冰乐"
+    expected_tool: calculate_price
+    trap: "星冰乐只能做冰的。模型应提醒用户星冰乐不支持热饮，或自动修正为冰"
+    expected_behavior: "模型应告知用户星冰乐只有冰的，而不是静默传入 temperature=hot"
+    order_context:
+      store_id: "ST_SH_001"
+
+  - id: CX-CONST-002
+    user_instruction: "馥芮白换燕麦奶"
+    expected_tool: calculate_price
+    trap: "馥芮白使用特制奶泡，不支持更换奶类。模型应提醒而非静默传入 milk=oat"
+    expected_behavior: "模型应告知用户馥芮白不支持换奶"
+    order_context:
+      store_id: "ST_SH_001"
+
+  - id: CX-CONST-003
+    user_instruction: "生椰冷萃要热的"
+    expected_tool: calculate_price
+    trap: "生椰冷萃 (D007) 只支持冰饮。模型应提醒而非传入 temperature=hot"
+    expected_behavior: "模型应告知用户生椰冷萃只有冰的选项"
+    order_context:
+      store_id: "ST_SH_001"
+
+  - id: CX-CONST-004
+    user_instruction: "超大杯浓缩咖啡"
+    expected_tool: calculate_price
+    trap: "浓缩咖啡 (D002) 只有中杯 (tall) 一种杯型。模型应告知而非传入 size=venti"
+    expected_behavior: "模型应告知用户浓缩咖啡只有中杯"
+    order_context:
+      store_id: "ST_SH_001"
+
+  - id: CX-CONST-005
+    user_instruction: "美式咖啡换燕麦奶"
+    expected_tool: calculate_price
+    trap: "美式咖啡默认无奶，加奶是不常见操作。模型应先确认用户意图或提示美式通常不加奶"
+    expected_behavior: "模型应提醒用户美式默认无奶，确认是否要加奶"
+    order_context:
+      store_id: "ST_SH_001"

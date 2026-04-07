@@ -1,0 +1,32 @@
+# 二级分类: wf-prerequisite — 优惠券使用流程
+layer: tool_selection
+criticality: P0
+tags: [workflow, coupon, discount]
+source: manual
+
+cases:
+  - id: WF-CPN-001
+    user_instruction: "有没有什么券可以用，帮我领了再下单"
+    expected_tool: available_coupons
+    expected_not_tool: create_order
+    trap: "应先领券 (available_coupons → claim_all_coupons)，再计价，再下单。不能跳步"
+    order_context:
+      store_id: "ST_SH_001"
+
+  - id: WF-CPN-002
+    user_instruction: "用我的优惠券算一下价格"
+    expected_tool: my_coupons
+    trap: "用户说'我的券'应先查 my_coupons 获取 coupon_code，再传入 calculate_price"
+    order_context:
+      store_id: "ST_SH_001"
+      items:
+        - product_code: "D003"
+          size: "tall"
+
+  - id: WF-CPN-003
+    user_instruction: "这个店有什么券可以用在我这单上"
+    expected_tool: store_coupons
+    expected_not_tool: available_coupons
+    trap: "问'这个店'的券用 store_coupons，不是 available_coupons（全平台可领券）"
+    order_context:
+      store_id: "ST_SH_001"

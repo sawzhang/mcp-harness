@@ -1,0 +1,34 @@
+# 二级分类: wf-pickup — 取餐方式处理
+# 自提/外送/堂食影响 create_order 的必填参数
+layer: tool_selection
+criticality: P0
+tags: [workflow, pickup, delivery, address]
+source: manual
+
+cases:
+  - id: WF-PICK-001
+    user_instruction: "帮我外送到家"
+    expected_tool: delivery_addresses
+    expected_not_tool: create_order
+    trap: "外送需要 address_id，应先调 delivery_addresses 让用户选地址，不能直接下单"
+    order_context:
+      store_id: "ST_SH_001"
+
+  - id: WF-PICK-002
+    user_instruction: "我要自提，下单吧"
+    expected_tool: calculate_price
+    expected_not_tool: create_order
+    trap: "即使是自提也必须先 calculate_price 获取 confirmation_token，不能跳到 create_order"
+    order_context:
+      store_id: "ST_SH_001"
+      items:
+        - product_code: "D003"
+          size: "tall"
+
+  - id: WF-PICK-003
+    user_instruction: "外送到公司，用那张满减券"
+    expected_tool: delivery_addresses
+    trap: "需要先获取地址列表选择 address_id，还需要 store_coupons 确认券可用；多个前置步骤"
+    order_context:
+      store_id: "ST_SH_001"
+      coupon_code: "CPN_001"

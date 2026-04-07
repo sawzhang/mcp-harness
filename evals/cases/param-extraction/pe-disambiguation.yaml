@@ -1,0 +1,45 @@
+# 二级分类: pe-disambiguation — 产品消歧
+# 用户说的品名可能匹配多个产品，模型需正确消歧或询问
+layer: param_mapping
+criticality: P1
+tags: [param_mapping, disambiguation, product_match]
+source: fid_generated
+
+cases:
+  - id: PE-DIS-001
+    user_instruction: "来杯拿铁"
+    expected_tool: calculate_price
+    expected_params:
+      items:
+        - product_code: "D003"
+    trap: "拿铁有多种（拿铁D003、香草拿铁D004、抹茶拿铁T001）。无修饰词时默认基础拿铁 D003"
+    order_context:
+      store_id: "ST_SH_001"
+
+  - id: PE-DIS-002
+    user_instruction: "来杯香草的"
+    expected_tool: calculate_price
+    expected_params:
+      items:
+        - product_code: "D004"
+    trap: "香草的 → 香草拿铁 D004。模型需从修饰词推断完整品名"
+    order_context:
+      store_id: "ST_SH_001"
+
+  - id: PE-DIS-003
+    user_instruction: "有什么拿铁"
+    expected_tool: browse_menu
+    expected_not_tool: calculate_price
+    trap: "问'有什么'是浏览意图不是下单意图，应调 browse_menu 而非直接计价"
+    order_context:
+      store_id: "ST_SH_001"
+
+  - id: PE-DIS-004
+    user_instruction: "那个樱花的"
+    expected_tool: calculate_price
+    expected_params:
+      items:
+        - product_code: "D006"
+    trap: "樱花的 → 樱花白巧拿铁 D006。需从修饰词匹配季节限定产品"
+    order_context:
+      store_id: "ST_SH_001"

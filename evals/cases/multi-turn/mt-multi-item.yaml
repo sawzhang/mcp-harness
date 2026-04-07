@@ -1,0 +1,62 @@
+# 二级分类: mt-multi-item — 多品并行点单
+# 一次对话中点多杯不同饮品，模型需保持各品参数独立
+layer: multi_turn
+criticality: P0
+tags: [multi_turn, multi_item, cart]
+source: manual
+
+cases:
+  - id: MT-MULTI-001
+    dialogue:
+      - turn: 1
+        user: "我要一杯大杯冰美式"
+        expected_tool: calculate_price
+        expected_params:
+          items:
+            - product_code: "D001"
+              size: "grande"
+      - turn: 2
+        user: "再加一杯中杯热拿铁换燕麦奶"
+        expected_tool: calculate_price
+        expected_params:
+          items:
+            - product_code: "D001"
+              size: "grande"
+            - product_code: "D003"
+              size: "tall"
+              milk: "oat"
+        trap: "第二杯是新增不是替换；两杯参数独立，美式不应被加上 milk=oat"
+      - turn: 3
+        user: "第一杯改成中杯"
+        expected_tool: calculate_price
+        expected_params:
+          items:
+            - product_code: "D001"
+              size: "tall"
+            - product_code: "D003"
+              size: "tall"
+              milk: "oat"
+        trap: "只修改第一杯的 size，第二杯拿铁的所有参数不变"
+
+  - id: MT-MULTI-002
+    dialogue:
+      - turn: 1
+        user: "一杯拿铁一杯美式都要大杯冰的"
+        expected_tool: calculate_price
+        expected_params:
+          items:
+            - product_code: "D003"
+              size: "grande"
+            - product_code: "D001"
+              size: "grande"
+        trap: "共享修饰词'大杯冰的'应同时应用到两杯，而非只应用到后一杯"
+      - turn: 2
+        user: "拿铁换成超大杯"
+        expected_tool: calculate_price
+        expected_params:
+          items:
+            - product_code: "D003"
+              size: "venti"
+            - product_code: "D001"
+              size: "grande"
+        trap: "只改拿铁的杯型，美式保持 grande 不变"

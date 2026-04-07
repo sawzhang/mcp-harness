@@ -1,0 +1,56 @@
+# 二级分类: pe-alias — 产品别名与口语化表达
+# 来源: AIChatOrder 的 slot_schema.py 和 rules_engine.py 中的别名映射
+# 用户不会说标准产品名，模型需理解口语、缩写、网络梗
+layer: param_mapping
+criticality: P0
+tags: [param_mapping, alias, colloquial, fuzzy]
+source: fid_generated
+
+cases:
+  - id: PE-ALIAS-001
+    user_instruction: "来杯澳白"
+    expected_tool: calculate_price
+    expected_params:
+      items:
+        - product_code: "D003"
+    trap: "澳白 / flat white 是馥芮白的口语叫法，模型需映射到正确 product_code"
+    order_context:
+      store_id: "ST_SH_001"
+
+  - id: PE-ALIAS-002
+    user_instruction: "一杯续命水，大杯冰的"
+    expected_tool: calculate_price
+    expected_params:
+      items:
+        - product_code: "D001"
+          size: "grande"
+    trap: "续命水/续命咖啡/续命液 = 美式咖啡，来自网络俚语"
+    order_context:
+      store_id: "ST_SH_001"
+
+  - id: PE-ALIAS-003
+    user_instruction: "来杯卡布"
+    expected_tool: calculate_price
+    expected_params:
+      items:
+        - product_code: "D005"
+    trap: "卡布是卡布奇诺的常用缩写"
+    order_context:
+      store_id: "ST_SH_001"
+
+  - id: PE-ALIAS-004
+    user_instruction: "一杯dirty"
+    expected_tool: calculate_price
+    trap: "dirty 是馥芮白（浓缩+牛奶不搅拌）的英文俗称"
+    order_context:
+      store_id: "ST_SH_001"
+
+  - id: PE-ALIAS-005
+    user_instruction: "来杯抹茶"
+    expected_tool: calculate_price
+    expected_params:
+      items:
+        - product_code: "T001"
+    trap: "抹茶 = 抹茶拿铁，用户省略了'拿铁'二字"
+    order_context:
+      store_id: "ST_SH_001"
