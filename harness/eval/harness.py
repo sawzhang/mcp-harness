@@ -138,6 +138,9 @@ class MCPEvalHarness:
         checks = await self._run_checks(case, dialogue)
         passed = all(c["passed"] for c in checks)
 
+        # Collect fingerprint data (judge scores if available)
+        fingerprint = await self._collect_fingerprint(case, dialogue, checks)
+
         return EvalResult(
             case_id=case.id,
             model=model_name,
@@ -148,6 +151,7 @@ class MCPEvalHarness:
             latency_ms=dialogue.total_latency_ms,
             token_usage=dialogue.token_usage,
             checks=checks,
+            fingerprint=fingerprint,
         )
 
     async def _eval_multi_turn(
@@ -258,7 +262,7 @@ class MCPEvalHarness:
                 })
 
         # LLM-as-Judge: evaluate expected_behavior assertions
-        if self.judge and case.expected_behavior and not case.expected_tool:
+        if self.judge and case.expected_behavior:
             try:
                 passed, explanation = await self.judge.evaluate_behavior(
                     expected_behavior=case.expected_behavior,
@@ -281,6 +285,32 @@ class MCPEvalHarness:
                 })
 
         return checks
+
+    async def _collect_fingerprint(
+        self, case: EvalCase, dialogue: DialogueResult, checks: list[dict]
+    ) -> dict:
+        """Collect multi-dimensional fingerprint data for this evaluation."""
+        fingerprint: dict = {}
+
+        # Run 4-dimension rubric if judge is available and there are tool calls
+        if self.judge and dialogue.tool_calls:
+            try:
+                judge_result = await self.judge.evaluate_rubric(
+                    user_instruction=case.user_instruction,
+                    tool_calls=[
+                        {"tool": tc.tool, "args": tc.arguments}
+                        for tc in dialogue.tool_calls
+                    ],
+                    final_response=dialogue.final_text,
+                    expected_behavior=case.expected_behavior or "",
+                    expected_params=case.expected_params or None,
+                )
+                if judge_result.scores:
+                    fingerprint["judge_scores"] = judge_result.score_dict
+            except Exception:
+                pass  # Judge failure should not block eval
+
+        return fingerprint
 
     def _build_provider(self, error_injection: dict) -> ToolResultProvider:
         """Build a ToolResultProvider from case YAML error_injection config."""

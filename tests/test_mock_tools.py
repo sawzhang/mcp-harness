@@ -308,6 +308,74 @@ def test_fingerprint_compute_overall():
     assert abs(fp.overall_score - 2 / 3) < 0.01
 
 
+@pytest.mark.asyncio
+async def test_harness_judge_populates_fingerprint():
+    """When judge is set, _collect_fingerprint should run evaluate_rubric and store scores."""
+    harness = MCPEvalHarness(mcp_tools=[
+        {"name": "calculate_price", "description": "calc", "inputSchema": {"type": "object"}},
+    ])
+    harness.register_model("mock", MockAdapterWithProvider(), tier=1)
+
+    # Use a mock judge that returns known scores
+    class MockJudge:
+        async def evaluate_behavior(self, **kwargs):
+            return True, "Behavior OK"
+
+        async def evaluate_rubric(self, **kwargs):
+            return JudgeResult(scores=[
+                JudgeScore(dimension="product_recognition", score=0.9),
+                JudgeScore(dimension="tool_efficiency", score=0.8),
+            ])
+
+    harness.judge = MockJudge()
+
+    case = EvalCase(
+        id="fp-test-001",
+        layer="tool_selection",
+        criticality="P0",
+        user_instruction="来杯拿铁",
+        expected_tool="calculate_price",
+    )
+    results = await harness.run_suite([case])
+    assert results[0].passed is True
+    # Fingerprint should contain judge scores
+    assert "judge_scores" in results[0].fingerprint
+    assert results[0].fingerprint["judge_scores"]["product_recognition"] == 0.9
+    assert results[0].fingerprint["judge_scores"]["tool_efficiency"] == 0.8
+
+
+@pytest.mark.asyncio
+async def test_harness_behavior_judge_with_expected_tool():
+    """Judge should run for cases that have BOTH expected_behavior AND expected_tool."""
+    harness = MCPEvalHarness(mcp_tools=[
+        {"name": "calculate_price", "description": "calc", "inputSchema": {"type": "object"}},
+    ])
+    harness.register_model("mock", MockAdapterWithProvider(), tier=1)
+
+    class MockJudge:
+        async def evaluate_behavior(self, **kwargs):
+            return True, "Behavior matches"
+
+        async def evaluate_rubric(self, **kwargs):
+            return JudgeResult()
+
+    harness.judge = MockJudge()
+
+    case = EvalCase(
+        id="judge-both-001",
+        layer="safety",
+        criticality="P0",
+        user_instruction="帮我下单",
+        expected_tool="calculate_price",
+        expected_behavior="Agent 应先调 calculate_price 展示价格",
+    )
+    results = await harness.run_suite([case])
+    # Should have both tool_selection check AND behavior_judge check
+    check_names = [c["name"] for c in results[0].checks]
+    assert "tool_selection" in check_names
+    assert "behavior_judge" in check_names
+
+
 def test_report_with_fingerprint():
     from harness.eval.harness import EvalResult
     results = [

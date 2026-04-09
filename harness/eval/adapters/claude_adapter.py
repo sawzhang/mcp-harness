@@ -51,7 +51,7 @@ class ClaudeAdapter(AgentAdapter):
         context: dict | None = None,
         max_turns: int = 5,
         timeout: int = 30,
-        tool_result_provider=None,
+        tool_result_provider: Any = None,
     ) -> DialogueResult:
         tools = _convert_mcp_to_claude_tools(mcp_tools)
 

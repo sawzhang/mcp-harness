@@ -19,6 +19,7 @@ from harness.agent.behavior import (
     detect_loops,
     analyze_recovery,
     analyze_efficiency,
+    analyze_state,
     analyze_behavior,
     BehaviorReport,
 )
@@ -205,6 +206,48 @@ def test_efficiency_with_waste():
     assert metrics.chaining_efficiency == 0.5  # 2/4
 
 
+# ===== State Management Tests =====
+
+def test_state_no_ground_truth():
+    trace = _make_trace([["search_menu"], ["add_cart"]])
+    metrics = analyze_state(trace)
+    assert metrics.cart_state_accuracy == 0.0  # No ground truth, no accuracy
+
+
+def test_state_exact_match():
+    trace = _make_trace([["search_menu"], ["add_cart"]])
+    trace.final_cart_state = {"items": [{"product_code": "D001", "size": "grande"}]}
+    ground_truth = {"items": [{"product_code": "D001", "size": "grande"}]}
+    metrics = analyze_state(trace, ground_truth)
+    assert metrics.cart_state_accuracy == 1.0
+
+
+def test_state_partial_match():
+    trace = _make_trace([["search_menu"], ["add_cart"]])
+    trace.final_cart_state = {"items": [{"product_code": "D001", "size": "tall"}]}
+    ground_truth = {"items": [{"product_code": "D001", "size": "grande"}]}
+    metrics = analyze_state(trace, ground_truth)
+    assert metrics.cart_state_accuracy < 1.0
+
+
+def test_state_cross_turn_reference():
+    # Turn 1: search_menu, Turn 2: add_cart with store_id (references prior)
+    turns = [
+        TurnTrace(turn_number=1, tool_calls=[
+            ToolCallRecord(tool="search_menu", arguments={"keyword": "latte"}),
+        ]),
+        TurnTrace(turn_number=2, tool_calls=[
+            ToolCallRecord(tool="add_cart", arguments={"store_id": "ST_001", "item_id": "D001"}),
+        ]),
+    ]
+    trace = AgentTrace(
+        case_id="test", agent_name="a", model_name="m",
+        turns=turns, total_tool_calls=2,
+    )
+    metrics = analyze_state(trace)
+    assert metrics.cross_turn_reference_rate > 0  # add_cart has _id args referencing prior
+
+
 # ===== Full Behavior Report =====
 
 def test_analyze_behavior_full():
@@ -214,11 +257,14 @@ def test_analyze_behavior_full():
         ["add_cart"],
         ["calculate_price"],
     ])
-    report = analyze_behavior(trace, optimal_steps=3)
+    ground_truth = {"items": [{"product_code": "D001"}]}
+    report = analyze_behavior(trace, optimal_steps=3, ground_truth=ground_truth)
     assert isinstance(report, BehaviorReport)
     assert report.planning.plan_step_count == 4
     assert report.planning.redundant_search_rate > 0
     assert report.efficiency.chaining_efficiency == 0.75  # 3/4
+    # State is computed (even if accuracy is 0 due to empty final_cart_state)
+    assert report.state is not None
 
 
 # ===== DTW Comparator Tests =====

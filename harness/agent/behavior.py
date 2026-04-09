@@ -160,6 +160,65 @@ def analyze_recovery(trace: AgentTrace) -> RecoveryMetrics:
     )
 
 
+def analyze_state(
+    trace: AgentTrace, ground_truth: dict | None = None
+) -> StateMetrics:
+    """Analyze state management across turns.
+
+    Checks:
+    - cart_state_accuracy: if ground_truth provided, compare final state via cart diff
+    - cross_turn_reference_rate: how often later turns reference tools from earlier turns
+    """
+    if not trace.turns:
+        return StateMetrics()
+
+    # Cart state accuracy via ground_truth comparison
+    cart_accuracy = 0.0
+    if ground_truth and trace.final_cart_state:
+        from .comparator import diff_cart_state
+
+        diff = diff_cart_state(ground_truth, trace.final_cart_state)
+        if diff.is_equivalent:
+            cart_accuracy = 1.0
+        else:
+            total_fields = max(
+                len(diff.missing_items) + len(diff.extra_items) + len(diff.modified_items), 1
+            )
+            correct_items = max(
+                len(ground_truth.get("items", []))
+                - len(diff.missing_items)
+                - len(diff.modified_items),
+                0,
+            )
+            expected_count = max(len(ground_truth.get("items", [])), 1)
+            cart_accuracy = correct_items / expected_count
+
+    # Cross-turn reference: detect if a tool in turn N uses a value produced by turn N-k
+    # Heuristic: if turn N calls a different tool than turn N-1 but uses same arg keys,
+    # it likely references prior state
+    cross_refs = 0
+    total_eligible = 0
+    prior_tools = set()
+    for turn in trace.turns:
+        for tc in turn.tool_calls:
+            if prior_tools and tc.tool not in prior_tools:
+                total_eligible += 1
+                # Check if any argument value was seen in prior results
+                # Simple heuristic: if args contain *_id or *_code fields, consider it a reference
+                for key in tc.arguments:
+                    if key.endswith(("_id", "_code", "_token", "_key")):
+                        cross_refs += 1
+                        break
+            prior_tools.add(tc.tool)
+
+    cross_rate = cross_refs / total_eligible if total_eligible else 0.0
+
+    return StateMetrics(
+        cart_state_accuracy=cart_accuracy,
+        cross_turn_reference_rate=cross_rate,
+    )
+
+
 def analyze_efficiency(
     trace: AgentTrace, optimal_steps: int | None = None
 ) -> EfficiencyMetrics:
@@ -174,12 +233,15 @@ def analyze_efficiency(
 
 
 def analyze_behavior(
-    trace: AgentTrace, optimal_steps: int | None = None
+    trace: AgentTrace,
+    optimal_steps: int | None = None,
+    ground_truth: dict | None = None,
 ) -> BehaviorReport:
-    """Run all behavior analyses on a trace."""
+    """Run all 5 behavior analyses on a trace."""
     return BehaviorReport(
         planning=analyze_planning(trace),
         recovery=analyze_recovery(trace),
         loops=detect_loops(trace),
+        state=analyze_state(trace, ground_truth),
         efficiency=analyze_efficiency(trace, optimal_steps),
     )

@@ -273,6 +273,9 @@ async def run():
         from harness.agent.trace import AgentTrace, TurnTrace, ToolCallRecord
         from harness.agent.behavior import analyze_behavior
 
+        # Build case lookup for ground_truth_order and optimal_steps
+        case_map = {c.id: c for c in cases}
+
         print(f"\n--- Agent Behavior Analysis ---")
         for r in results:
             # Build trace from eval result
@@ -288,12 +291,23 @@ async def run():
                 total_tool_calls=len(r.tool_calls),
                 total_latency_ms=r.latency_ms,
             )
-            behavior = analyze_behavior(trace)
-            if behavior.loops.total_loops_detected > 0 or behavior.planning.redundant_search_rate > 0:
+            case = case_map.get(r.case_id)
+            behavior = analyze_behavior(
+                trace,
+                optimal_steps=case.optimal_steps if case else None,
+                ground_truth=case.ground_truth_order if case else None,
+            )
+            has_issues = (
+                behavior.loops.total_loops_detected > 0
+                or behavior.planning.redundant_search_rate > 0
+                or behavior.efficiency.chaining_efficiency < 1.0
+            )
+            if has_issues:
                 print(f"  {r.case_id} ({r.model}): "
                       f"steps={behavior.planning.plan_step_count} "
                       f"loops={behavior.loops.total_loops_detected} "
-                      f"redundant={behavior.planning.redundant_search_rate:.0%}")
+                      f"redundant={behavior.planning.redundant_search_rate:.0%} "
+                      f"efficiency={behavior.efficiency.chaining_efficiency:.0%}")
 
     if args.report:
         save_report(report, args.output)
