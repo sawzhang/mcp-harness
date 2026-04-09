@@ -3,6 +3,11 @@ MCP Eval Harness — 多模型并行评估引擎
 
 核心设计：不直接调用 MCP HTTP，而是让 Agent 自主决策 Tool 调用。
 测的是 Tool Description × Model 的组合效果。
+
+扩展：
+- 可编程 Mock（错误注入）— 测试 L4 Error Recovery
+- LLM-as-Judge 集成 — 评估 expected_behavior 语义断言
+- Fingerprint 数据收集 — 构建多维能力画像
 """
 
 from __future__ import annotations
@@ -14,6 +19,7 @@ from typing import Any
 
 from .adapters.base import AgentAdapter, DialogueResult, ORDERING_AGENT_SYSTEM_PROMPT
 from .case_loader import EvalCase
+from .mock_tools import ToolResultProvider, MockToolResult
 
 
 @dataclass
@@ -28,6 +34,7 @@ class EvalResult:
     token_usage: dict = field(default_factory=dict)
     checks: list[dict] = field(default_factory=list)  # [{name, passed, detail}]
     error: str = ""
+    fingerprint: dict = field(default_factory=dict)  # Per-result dimension data
 
 
 @dataclass
@@ -38,9 +45,10 @@ class ModelEntry:
 
 class MCPEvalHarness:
 
-    def __init__(self, mcp_tools: list[dict] | None = None):
+    def __init__(self, mcp_tools: list[dict] | None = None, judge=None):
         self.mcp_tools = mcp_tools or []
         self.models: dict[str, ModelEntry] = {}
+        self.judge = judge  # Optional LLMJudge instance
 
     def register_model(self, name: str, adapter: AgentAdapter, tier: int = 1):
         self.models[name] = ModelEntry(adapter=adapter, tier=tier)
@@ -105,9 +113,11 @@ class MCPEvalHarness:
         case: EvalCase,
         system_prompt: str,
     ) -> EvalResult:
+        # Build error injection provider if configured
+        provider = self._build_provider(case.error_injection) if case.error_injection else None
 
         if case.layer == "multi_turn" and case.dialogue_turns:
-            return await self._eval_multi_turn(model_name, adapter, case, system_prompt)
+            return await self._eval_multi_turn(model_name, adapter, case, system_prompt, provider)
 
         try:
             dialogue = await adapter.run_dialogue(
@@ -117,6 +127,7 @@ class MCPEvalHarness:
                 context=case.order_context or None,
                 max_turns=5,
                 timeout=30,
+                tool_result_provider=provider,
             )
         except Exception as e:
             return EvalResult(
@@ -124,7 +135,7 @@ class MCPEvalHarness:
                 passed=False, error=str(e),
             )
 
-        checks = self._run_checks(case, dialogue)
+        checks = await self._run_checks(case, dialogue)
         passed = all(c["passed"] for c in checks)
 
         return EvalResult(
@@ -145,6 +156,7 @@ class MCPEvalHarness:
         adapter: AgentAdapter,
         case: EvalCase,
         system_prompt: str,
+        provider: ToolResultProvider | None = None,
     ) -> EvalResult:
         turns_text = [t.get("user", t.get("input", "")) for t in case.dialogue_turns]
         try:
@@ -154,6 +166,7 @@ class MCPEvalHarness:
                 mcp_tools=self.mcp_tools,
                 max_turns_per_message=3,
                 timeout=30,
+                tool_result_provider=provider,
             )
         except Exception as e:
             return EvalResult(
@@ -204,7 +217,7 @@ class MCPEvalHarness:
             checks=checks,
         )
 
-    def _run_checks(self, case: EvalCase, dialogue: DialogueResult) -> list[dict]:
+    async def _run_checks(self, case: EvalCase, dialogue: DialogueResult) -> list[dict]:
         checks = []
 
         # Check: expected tool called
@@ -244,7 +257,53 @@ class MCPEvalHarness:
                     "detail": f"Tool '{case.expected_tool}' not called, cannot check params",
                 })
 
+        # LLM-as-Judge: evaluate expected_behavior assertions
+        if self.judge and case.expected_behavior and not case.expected_tool:
+            try:
+                passed, explanation = await self.judge.evaluate_behavior(
+                    expected_behavior=case.expected_behavior,
+                    tool_calls=[
+                        {"tool": tc.tool, "args": tc.arguments}
+                        for tc in dialogue.tool_calls
+                    ],
+                    final_response=dialogue.final_text,
+                )
+                checks.append({
+                    "name": "behavior_judge",
+                    "passed": passed,
+                    "detail": explanation,
+                })
+            except Exception as e:
+                checks.append({
+                    "name": "behavior_judge",
+                    "passed": False,
+                    "detail": f"Judge error: {e}",
+                })
+
         return checks
+
+    def _build_provider(self, error_injection: dict) -> ToolResultProvider:
+        """Build a ToolResultProvider from case YAML error_injection config."""
+        provider = ToolResultProvider()
+        for tool_name, config in error_injection.items():
+            if "sequence" in config:
+                results = [
+                    MockToolResult(
+                        status_code=s.get("status_code", 500),
+                        error_message=s.get("message", "Error"),
+                    )
+                    for s in config["sequence"]
+                ]
+                provider.set_sequence(tool_name, results)
+            else:
+                provider.set_result(
+                    tool_name,
+                    MockToolResult(
+                        status_code=config.get("status_code", 500),
+                        error_message=config.get("message", "Error"),
+                    ),
+                )
+        return provider
 
 
 def _param_match(expected, actual) -> bool:

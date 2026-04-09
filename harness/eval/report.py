@@ -20,6 +20,7 @@ from .harness import EvalResult
 def generate_report(
     results: list[EvalResult],
     mcp_version: str = "0.1.0",
+    include_fingerprint: bool = False,
 ) -> dict:
     models = sorted(set(r.model for r in results))
     layers = sorted(set(r.layer for r in results))
@@ -91,6 +92,16 @@ def generate_report(
         },
     }
 
+    # Fingerprint matrix — multi-dimensional capability profile
+    if include_fingerprint:
+        from ..fingerprint import FingerprintMatrix
+
+        matrix = FingerprintMatrix()
+        for r in results:
+            judge_scores = r.fingerprint.get("judge_scores") if r.fingerprint else None
+            matrix.add_result(r.model, r.layer, r.passed, judge_scores)
+        report["fingerprint_matrix"] = matrix.to_dict()
+
     return report
 
 
@@ -152,6 +163,33 @@ def print_report(report: dict):
         for f in failures[:10]:
             checks_str = ", ".join(c["name"] for c in f.get("failed_checks", []))
             console.print(f"  [red]FAIL[/red] {f['case_id']} ({f['model']}) — {checks_str or f.get('error', '')}")
+
+    # Fingerprint matrix
+    fp_matrix = report.get("fingerprint_matrix")
+    if fp_matrix:
+        console.print(f"\n[bold]Capability Fingerprint Matrix:[/bold]")
+        # Collect all dimensions
+        all_dims = set()
+        for fp in fp_matrix.values():
+            all_dims.update(fp.get("dimensions", {}).keys())
+        all_dims = sorted(all_dims)
+
+        fp_table = Table(title="Fingerprint")
+        fp_table.add_column("Model")
+        fp_table.add_column("Overall", justify="right")
+        for dim in all_dims:
+            fp_table.add_column(dim[:16], justify="right")
+
+        for model_name, fp in sorted(fp_matrix.items()):
+            overall = f"{fp.get('overall', 0):.1%}"
+            dim_values = []
+            for dim in all_dims:
+                d = fp.get("dimensions", {}).get(dim, {})
+                rate = d.get("pass_rate", 0)
+                dim_values.append(f"{rate:.0%}")
+            fp_table.add_row(model_name, overall, *dim_values)
+
+        console.print(fp_table)
 
 
 def _print_plain(report: dict):

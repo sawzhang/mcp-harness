@@ -25,7 +25,8 @@ class MockAdapter(AgentAdapter):
         self._params = params or {}
 
     async def run_dialogue(self, system_prompt, user_message, mcp_tools,
-                           context=None, max_turns=5, timeout=30) -> DialogueResult:
+                           context=None, max_turns=5, timeout=30,
+                           **kwargs) -> DialogueResult:
         tc = ToolCall(tool=self._tool, arguments=self._params)
         return DialogueResult(
             turns=[{"role": "assistant", "content": "好的", "tool_calls": [{"name": self._tool}]}],
@@ -42,7 +43,8 @@ class BadAdapter(AgentAdapter):
     name = "bad_model"
 
     async def run_dialogue(self, system_prompt, user_message, mcp_tools,
-                           context=None, max_turns=5, timeout=30) -> DialogueResult:
+                           context=None, max_turns=5, timeout=30,
+                           **kwargs) -> DialogueResult:
         tc = ToolCall(tool="create_order", arguments={"store_id": "ST_001"})
         return DialogueResult(
             turns=[],

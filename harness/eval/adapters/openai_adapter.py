@@ -55,6 +55,7 @@ class OpenAIAdapter(AgentAdapter):
         context: dict | None = None,
         max_turns: int = 5,
         timeout: int = 30,
+        tool_result_provider=None,
     ) -> DialogueResult:
         tools = _convert_mcp_to_openai_tools(mcp_tools)
 
@@ -69,6 +70,7 @@ class OpenAIAdapter(AgentAdapter):
 
         all_tool_calls = []
         turns = []
+        tool_call_timeline = []
         start = time.monotonic()
         total_tokens = {"input": 0, "output": 0}
 
@@ -108,8 +110,20 @@ class OpenAIAdapter(AgentAdapter):
                 all_tool_calls.append(tool_call)
 
                 # Mock tool result — Eval 模式下不真实调用 MCP
-                mock_result = {"status": "success", "mock": True, "tool": tc.function.name}
+                if tool_result_provider:
+                    mock_result = tool_result_provider.get_result(tc.function.name, args)
+                else:
+                    mock_result = {"status": "success", "mock": True, "tool": tc.function.name}
                 tool_call.result = mock_result
+
+                was_error = mock_result.get("error", False)
+                tool_call_timeline.append({
+                    "turn": len(turns),
+                    "tool": tc.function.name,
+                    "arguments": args,
+                    "result": mock_result,
+                    "was_error": was_error,
+                })
 
                 messages.append({
                     "role": "tool",
@@ -131,4 +145,5 @@ class OpenAIAdapter(AgentAdapter):
             final_text=final_text,
             total_latency_ms=elapsed,
             token_usage=total_tokens,
+            tool_call_timeline=tool_call_timeline,
         )

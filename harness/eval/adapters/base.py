@@ -13,7 +13,10 @@ import json
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..mock_tools import ToolResultProvider
 
 
 @dataclass
@@ -30,6 +33,9 @@ class DialogueResult:
     final_text: str = ""
     total_latency_ms: float = 0
     token_usage: dict[str, int] = field(default_factory=dict)
+    # Per-call detail for agent behavior analysis
+    tool_call_timeline: list[dict] = field(default_factory=list)
+    # [{turn: int, tool: str, arguments: dict, result: dict, latency_ms: float, was_error: bool}]
 
     def extract_tool_calls(self) -> list[ToolCall]:
         return self.tool_calls
@@ -64,6 +70,7 @@ class AgentAdapter(ABC):
         context: dict | None = None,
         max_turns: int = 5,
         timeout: int = 30,
+        tool_result_provider: ToolResultProvider | None = None,
     ) -> DialogueResult:
         ...
 
@@ -75,6 +82,7 @@ class AgentAdapter(ABC):
         context: dict | None = None,
         max_turns_per_message: int = 3,
         timeout: int = 30,
+        tool_result_provider: ToolResultProvider | None = None,
     ) -> list[DialogueResult]:
         results = []
         conversation_history: list[dict] = []
@@ -99,6 +107,7 @@ class AgentAdapter(ABC):
                 context=context,
                 max_turns=max_turns_per_message,
                 timeout=timeout,
+                tool_result_provider=tool_result_provider,
             )
             results.append(result)
 

@@ -183,7 +183,8 @@ class MockAdapterForOptimizer:
     name = "mock-evaluator"
 
     async def run_dialogue(self, system_prompt, user_message, mcp_tools,
-                           context=None, max_turns=5, timeout=30):
+                           context=None, max_turns=5, timeout=30,
+                           **kwargs):
         from harness.eval.adapters.base import DialogueResult, ToolCall
 
         # 根据 user_message 中的关键词选择 tool

@@ -28,7 +28,8 @@ class WeakAdapter(AgentAdapter):
         self._tools_ref = tools_ref
 
     async def run_dialogue(self, system_prompt, user_message, mcp_tools,
-                           context=None, max_turns=5, timeout=30):
+                           context=None, max_turns=5, timeout=30,
+                           **kwargs):
         # 检查 calculate_price 的 description 是否包含杯型映射
         size_desc = ""
         for t in mcp_tools:

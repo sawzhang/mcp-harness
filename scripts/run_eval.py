@@ -169,6 +169,10 @@ def parse_args():
     parser.add_argument("--report", action="store_true", help="Generate YAML report")
     parser.add_argument("--output", type=str, default="evals/reports/latest.yaml", help="Report output path")
     parser.add_argument("--dry-run", action="store_true", help="List cases without running")
+    parser.add_argument("--judge", action="store_true", help="Enable LLM-as-Judge for behavior assertions")
+    parser.add_argument("--judge-model", type=str, default="claude-sonnet-4-20250514", help="Model for judge")
+    parser.add_argument("--fingerprint", action="store_true", help="Include fingerprint matrix in report")
+    parser.add_argument("--behavior", action="store_true", help="Run agent behavior analysis")
     return parser.parse_args()
 
 
@@ -236,6 +240,21 @@ async def run():
         return
 
     harness = create_harness(args)
+
+    # Set up LLM-as-Judge if requested
+    if args.judge:
+        from harness.eval.judge import LLMJudge
+        judge_client = None
+        ant_key = os.environ.get("ANTHROPIC_API_KEY", "")
+        if ant_key:
+            try:
+                from anthropic import AsyncAnthropic
+                judge_client = AsyncAnthropic(api_key=ant_key)
+            except ImportError:
+                pass
+        harness.judge = LLMJudge(client=judge_client, model=args.judge_model)
+        print(f"LLM-as-Judge enabled (model: {args.judge_model})")
+
     if not harness.models:
         print("No models configured. Set API keys via environment variables:")
         print("  QIANWEN_API_KEY / DASHSCOPE_API_KEY")
@@ -246,8 +265,35 @@ async def run():
     print(f"Running with models: {list(harness.models.keys())}")
     results = await harness.run_suite(cases, tier_filter=args.tier)
 
-    report = generate_report(results)
+    report = generate_report(results, include_fingerprint=args.fingerprint)
     print_report(report)
+
+    # Agent behavior analysis
+    if args.behavior:
+        from harness.agent.trace import AgentTrace, TurnTrace, ToolCallRecord
+        from harness.agent.behavior import analyze_behavior
+
+        print(f"\n--- Agent Behavior Analysis ---")
+        for r in results:
+            # Build trace from eval result
+            tc_records = [
+                ToolCallRecord(tool=tc["tool"], arguments=tc.get("args", {}))
+                for tc in r.tool_calls
+            ]
+            trace = AgentTrace(
+                case_id=r.case_id,
+                agent_name=r.model,
+                model_name=r.model,
+                turns=[TurnTrace(turn_number=1, tool_calls=tc_records)],
+                total_tool_calls=len(r.tool_calls),
+                total_latency_ms=r.latency_ms,
+            )
+            behavior = analyze_behavior(trace)
+            if behavior.loops.total_loops_detected > 0 or behavior.planning.redundant_search_rate > 0:
+                print(f"  {r.case_id} ({r.model}): "
+                      f"steps={behavior.planning.plan_step_count} "
+                      f"loops={behavior.loops.total_loops_detected} "
+                      f"redundant={behavior.planning.redundant_search_rate:.0%}")
 
     if args.report:
         save_report(report, args.output)
