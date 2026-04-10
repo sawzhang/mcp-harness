@@ -40,6 +40,17 @@ class EvalCase:
     # 参数映射专用
     mapping_tests: list[dict] = field(default_factory=list)
 
+    # 错误注入（L4 Error Recovery）
+    error_injection: dict = field(default_factory=dict)
+    # {"tool_name": {"status_code": 409, "message": "sold out"}}
+    # 或 {"tool_name": {"sequence": [{"status_code": 409}, {"status_code": 200}]}}
+    expected_recovery: str = ""
+
+    # 增强场景（Phase 3）
+    ground_truth_order: dict = field(default_factory=dict)
+    eval_mode: str = ""  # "structural_diff" | "semantic_judge" | ""
+    optimal_steps: int = 0  # 最优工具调用数（用于效率计算）
+
 
 def load_case_file(path: Path) -> list[EvalCase]:
     with open(path, encoding="utf-8") as f:
@@ -80,6 +91,11 @@ def load_case_file(path: Path) -> list[EvalCase]:
             trap=c.get("trap", ""),
             dialogue_turns=c.get("dialogue", c.get("dialogue_turns", [])),
             mapping_tests=c.get("mapping_tests", c.get("variants", [])),
+            error_injection=c.get("error_injection", {}),
+            expected_recovery=c.get("expected_recovery", ""),
+            ground_truth_order=c.get("ground_truth_order", {}),
+            eval_mode=c.get("eval_mode", ""),
+            optimal_steps=c.get("optimal_steps", 0),
         )
         cases.append(case)
 

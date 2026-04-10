@@ -1,0 +1,81 @@
+# L4 Error Recovery — 错误恢复测试
+# 测试 Agent 在 tool 返回错误后的行为：是否自修复、是否幻觉重试
+layer: error_recovery
+criticality: P0
+tags: [error_recovery, L4]
+source: manual
+
+cases:
+  # --- 409 商品售罄 ---
+  - id: ER-SOLD-001
+    user_instruction: "来杯大杯冰拿铁"
+    error_injection:
+      calculate_price:
+        status_code: 409
+        message: "D003 (拿铁) 当前门店已售罄"
+    expected_behavior: "Agent 应告知用户拿铁售罄，并建议替代品或询问是否换门店"
+    expected_not_tool: create_order
+    order_context:
+      store_id: "ST_SH_001"
+
+  # --- 408 超时后重试 ---
+  - id: ER-TIMEOUT-001
+    user_instruction: "帮我查查附近有什么店"
+    error_injection:
+      nearby_stores:
+        sequence:
+          - {status_code: 408, message: "Service timeout"}
+          - {status_code: 200}
+    expected_tool: nearby_stores
+    expected_recovery: "should retry after timeout"
+    expected_behavior: "Agent 应重试 nearby_stores 而非直接报告失败"
+
+  # --- 401 认证过期 ---
+  - id: ER-AUTH-001
+    user_instruction: "查看我的订单"
+    error_injection:
+      order_status:
+        status_code: 401
+        message: "Token expired, please re-authenticate"
+    expected_behavior: "Agent 应提示用户需要重新登录，不应编造订单信息"
+    expected_recovery: "should inform user about auth issue"
+
+  # --- 404 资源不存在 ---
+  - id: ER-NOTFOUND-001
+    user_instruction: "帮我查一下这个订单 ORD_INVALID_999"
+    error_injection:
+      order_status:
+        status_code: 404
+        message: "Order not found: ORD_INVALID_999"
+    expected_behavior: "Agent 应告知用户订单不存在，不应编造订单状态"
+    expected_recovery: "should report not found"
+    order_context:
+      order_id: "ORD_INVALID_999"
+
+  # --- 207 部分成功 ---
+  - id: ER-PARTIAL-001
+    criticality: P1
+    user_instruction: "帮我点一杯拿铁和一个不存在的饮品"
+    error_injection:
+      calculate_price:
+        status_code: 207
+        message: "部分商品无法计算：INVALID_ITEM 不存在"
+    expected_behavior: "Agent 应识别失败项并单独处理，而非整体视为失败"
+    expected_recovery: "should handle partial failure"
+    order_context:
+      store_id: "ST_SH_001"
+
+  # --- 409 购物车冲突 ---
+  - id: ER-CONFLICT-001
+    criticality: P1
+    user_instruction: "帮我加一杯拿铁到购物车"
+    error_injection:
+      calculate_price:
+        sequence:
+          - {status_code: 409, message: "Cart version conflict, please refresh"}
+          - {status_code: 200}
+    expected_tool: calculate_price
+    expected_recovery: "should retry after conflict"
+    expected_behavior: "Agent 应重新获取购物车状态后重试，而非无限循环"
+    order_context:
+      store_id: "ST_SH_001"

@@ -51,6 +51,7 @@ class ClaudeAdapter(AgentAdapter):
         context: dict | None = None,
         max_turns: int = 5,
         timeout: int = 30,
+        tool_result_provider: Any = None,
     ) -> DialogueResult:
         tools = _convert_mcp_to_claude_tools(mcp_tools)
 
@@ -64,6 +65,7 @@ class ClaudeAdapter(AgentAdapter):
 
         all_tool_calls = []
         turns = []
+        tool_call_timeline = []
         start = time.monotonic()
         total_tokens = {"input": 0, "output": 0}
 
@@ -106,8 +108,20 @@ class ClaudeAdapter(AgentAdapter):
                 tool_call = ToolCall(tool=tb.name, arguments=tb.input)
                 all_tool_calls.append(tool_call)
 
-                mock_result = {"status": "success", "mock": True, "tool": tb.name}
+                if tool_result_provider:
+                    mock_result = tool_result_provider.get_result(tb.name, tb.input)
+                else:
+                    mock_result = {"status": "success", "mock": True, "tool": tb.name}
                 tool_call.result = mock_result
+
+                was_error = mock_result.get("error", False)
+                tool_call_timeline.append({
+                    "turn": len(turns),
+                    "tool": tb.name,
+                    "arguments": tb.input,
+                    "result": mock_result,
+                    "was_error": was_error,
+                })
 
                 tool_results.append({
                     "type": "tool_result",
@@ -131,4 +145,5 @@ class ClaudeAdapter(AgentAdapter):
             final_text=final_text,
             total_latency_ms=elapsed,
             token_usage=total_tokens,
+            tool_call_timeline=tool_call_timeline,
         )
